@@ -2,6 +2,8 @@
 
 A computer vision system for detecting and analyzing climbing holds on indoor bouldering walls using color segmentation, texture analysis, and shape features.
 
+<img width="579" height="580" alt="image" src="https://github.com/user-attachments/assets/8acb97a4-9c5b-4996-a9bb-28850c968f2d" />
+
 ## Overview
 
 This project implements a multi-feature approach to automatically detect climbing holds in images of indoor climbing walls. Unlike simple color-based detection systems, this implementation combines:
@@ -165,3 +167,4 @@ climbing-hold-detection/
 - [Indoor Climbing Hold and Route Segmentation](https://github.com/xiaoxiae/Indoor-Climbing-Hold-and-Route-Segmentation) - University of Heidelberg
 - [ClimbNet](https://github.com/cydivision/climbnet) - Detectron2-based approach
 - [Route Classification](https://github.com/tonylay7/bouldering_route_classification) - ML-based route grading
+
