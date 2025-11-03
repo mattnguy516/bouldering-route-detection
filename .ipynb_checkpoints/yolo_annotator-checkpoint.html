@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO Climbing Hold Annotator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        
+        .controls {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button.danger {
+            background: #f44336;
+        }
+        
+        button.danger:hover {
+            background: #da190b;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        label.file-input {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        label.file-input:hover {
+            background: #0b7dda;
+        }
+        
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .info {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .info p {
+            margin: 5px 0;
+        }
+        
+        .instructions {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .labels-output {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .labels-output h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .label-item {
+            background: #1e1e1e;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .label-text {
+            font-family: 'Courier New', monospace;
+            color: #4CAF50;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: #1e1e1e;
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            margin-top: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧗 YOLO Climbing Hold Annotator</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ul>
+                <li><strong>Load Image:</strong> Click "Choose Image" and select a climbing wall photo</li>
+                <li><strong>Draw Boxes:</strong> Click and drag on the image to draw bounding boxes around holds</li>
+                <li><strong>Delete Box:</strong> Click "Undo Last Box" or press 'U' key</li>
+                <li><strong>Save Labels:</strong> Click "Download Labels" to save the .txt file (same name as image)</li>
+                <li><strong>Next Image:</strong> Load next image and repeat</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageInput" class="file-input">Choose Image</label>
+                <input type="file" id="imageInput" accept="image/*">
+                <button onclick="undoLastBox()">Undo Last Box (U)</button>
+                <button class="danger" onclick="clearAllBoxes()">Clear All</button>
+                <button onclick="downloadLabels()">Download Labels (.txt)</button>
+            </div>
+        </div>
+        
+        <div class="info">
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="boxCount">0</div>
+                    <div class="stat-label">Holds Annotated</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="imageName">No image loaded</div>
+                    <div class="stat-label">Current Image</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="imageDimensions">-</div>
+                    <div class="stat-label">Image Dimensions</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="labels-output">
+            <h3>Generated Labels (YOLO Format):</h3>
+            <p style="color: #aaa; margin-bottom: 10px;">
+                Format: class_id x_center y_center width height (all normalized 0-1)
+            </p>
+            <textarea id="labelsText" readonly></textarea>
+            <div id="labelsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+        const labelsText = document.getElementById('labelsText');
+        
+        let img = null;
+        let boxes = [];
+        let isDrawing = false;
+        let startX, startY;
+        let currentBox = null;
+        let currentImageName = '';
+        
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentImageName = file.name;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    img = new Image();
+                    img.onload = () => {
+                        // Scale canvas to fit screen while maintaining aspect ratio
+                        const maxWidth = 1400;
+                        const maxHeight = 900;
+                        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+                        
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        
+                        boxes = [];
+                        redraw();
+                        updateInfo();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            if (!img) return;
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = (e.clientX - rect.left) * (img.width / canvas.width);
+            startY = (e.clientY - rect.top) * (img.height / canvas.height);
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing || !img) return;
+            const rect = canvas.getBoundingClientRect();
+            const currentX = (e.clientX - rect.left) * (img.width / canvas.width);
+            const currentY = (e.clientY - rect.top) * (img.height / canvas.height);
+            
+            currentBox = {
+                x1: Math.min(startX, currentX),
+                y1: Math.min(startY, currentY),
+                x2: Math.max(startX, currentX),
+                y2: Math.max(startY, currentY)
+            };
+            
+            redraw();
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing || !img) return;
+            isDrawing = false;
+            
+            if (currentBox && (currentBox.x2 - currentBox.x1) > 5 && (currentBox.y2 - currentBox.y1) > 5) {
+                boxes.push(currentBox);
+                updateLabels();
+                updateInfo();
+            }
+            
+            currentBox = null;
+            redraw();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'u' || e.key === 'U') {
+                undoLastBox();
+            }
+        });
+        
+        function redraw() {
+            if (!img) return;
+            
+            // Clear and draw image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            const scaleX = canvas.width / img.width;
+            const scaleY = canvas.height / img.height;
+            
+            // Draw saved boxes
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 3;
+            boxes.forEach((box, index) => {
+                ctx.strokeRect(
+                    box.x1 * scaleX,
+                    box.y1 * scaleY,
+                    (box.x2 - box.x1) * scaleX,
+                    (box.y2 - box.y1) * scaleY
+                );
+                
+                // Draw box number
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = '16px Arial';
+                ctx.fillText(
+                    `#${index + 1}`,
+                    box.x1 * scaleX + 5,
+                    box.y1 * scaleY + 20
+                );
+            });
+            
+            // Draw current box being drawn
+            if (currentBox) {
+                ctx.strokeStyle = '#FFC107';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(
+                    currentBox.x1 * scaleX,
+                    currentBox.y1 * scaleY,
+                    (currentBox.x2 - currentBox.x1) * scaleX,
+                    (currentBox.y2 - currentBox.y1) * scaleY
+                );
+                ctx.setLineDash([]);
+            }
+        }
+        
+        function pixelToYolo(x1, y1, x2, y2) {
+            const xCenter = (x1 + x2) / (2 * img.width);
+            const yCenter = (y1 + y2) / (2 * img.height);
+            const width = (x2 - x1) / img.width;
+            const height = (y2 - y1) / img.height;
+            return [xCenter, yCenter, width, height];
+        }
+        
+        function updateLabels() {
+            let labelText = '';
+            boxes.forEach(box => {
+                const [xc, yc, w, h] = pixelToYolo(box.x1, box.y1, box.x2, box.y2);
+                labelText += `0 ${xc.toFixed(6)} ${yc.toFixed(6)} ${w.toFixed(6)} ${h.toFixed(6)}\n`;
+            });
+            labelsText.value = labelText;
+        }
+        
+        function updateInfo() {
+            document.getElementById('boxCount').textContent = boxes.length;
+            document.getElementById('imageName').textContent = currentImageName || 'No image';
+            if (img) {
+                document.getElementById('imageDimensions').textContent = `${img.width}x${img.height}`;
+            }
+        }
+        
+        function undoLastBox() {
+            if (boxes.length > 0) {
+                boxes.pop();
+                updateLabels();
+                updateInfo();
+                redraw();
+            }
+        }
+        
+        function clearAllBoxes() {
+            if (confirm('Clear all boxes?')) {
+                boxes = [];
+                updateLabels();
+                updateInfo();
+                redraw();
+            }
+        }
+        
+        function downloadLabels() {
+            if (boxes.length === 0) {
+                alert('No boxes to save!');
+                return;
+            }
+            
+            if (!currentImageName) {
+                alert('No image loaded!');
+                return;
+            }
+            
+            const labelFileName = currentImageName.replace(/\.[^/.]+$/, '') + '.txt';
+            const blob = new Blob([labelsText.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = labelFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert(`Labels saved as: ${labelFileName}\n\nBoxes annotated: ${boxes.length}`);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+
+# Climbing Holds Dataset Configuration
+path: C:\Users\0fore\Downloads\bouldering_route_detection\test_dataset
+train: images/train
+val: images/val
+
+# Classes
+names:
+  0: climbing_hold
+
+# Number of classes
+nc: 1
